@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# reproduction-next-intl-missing-query-string
 
-## Getting Started
+## The bug
 
-First, run the development server:
+When using `next-intl`, the query string is dropped in some cases when using `next-intl`'s `Link`-component. This happens when default locale is shown without locale prefix (`as-needed` option).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Getting started
+
+1. Install [pnpm](https://pnpm.io/installation)
+2. Run `pnpm install` in root
+3. Run `pnpm dev`
+
+## How to reproduce the bug
+
+1. On the page: Click on `Swedish`-link
+2. You will now see that the route has changed to `localhost:3000/sv`
+3. Hover over `A link to another page with query string`-link. You will now see that the page has `?name=guest` as query string appended to the url
+4. Click on `English`-link
+5. You will now see that the route has changed to `localhost:3000`
+6. Hover over `A link to another page with query string`-link. You will now see that the page doesn't have any query string appended to the url
+
+## Possible fix
+
+In the `createSharedNavigationFns.tsx` do the following change [here](https://github.com/amannn/next-intl/blob/main/packages/next-intl/src/navigation/shared/createSharedNavigationFns.tsx#L162):
+
+```typescript
+unprefixed={
+  forcePrefixSsr && isLocalizable
+    ? {
+        domains: (config as any).domains.reduce(
+          (
+            acc: Record<Locale, string>,
+            domain: DomainConfig<AppLocales>
+          ) => {
+            // @ts-expect-error -- This is ok
+            acc[domain.domain] = domain.defaultLocale;
+            return acc;
+          },
+          {}
+        ),
+        pathname: getPathname(
+          // @ts-expect-error -- This is ok
+          {
+            locale: curLocale,
+            href: pathnames == null ? pathname : {pathname, params}
+            query: href.query // Add this line?
+          },
+          false
+        )
+      }
+    : undefined
+}
 ```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

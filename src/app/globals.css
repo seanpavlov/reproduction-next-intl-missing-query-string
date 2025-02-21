@@ -31,8 +31,13 @@ body {
 }
 
 a {
-  color: inherit;
+  color: blue;
   text-decoration: none;
+
+}
+
+a:hover {
+  text-decoration: underline;
 }
 
 @media (prefers-color-scheme: dark) {
